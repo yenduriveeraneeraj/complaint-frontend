@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import ForgotPasswordModal from '../../components/common/ForgotPasswordModal';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [showForgotModal, setShowForgotModal] = useState(false);
   const { login, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,6 +27,8 @@ const Login = () => {
     if (res.success) {
       if (res.data.role === 'ROLE_ADMIN') {
         navigate('/admin/dashboard');
+      } else if (res.data.role === 'ROLE_STAFF') {
+        navigate('/staff/dashboard');
       } else {
         navigate('/user/dashboard');
       }
@@ -38,6 +42,11 @@ const Login = () => {
     setPassword('Admin@123');
   };
 
+  const fillDemoStaff = () => {
+    setEmail('staff@cms.com');
+    setPassword('Staff@123');
+  };
+
   const fillDemoUser = () => {
     setEmail('user@cms.com');
     setPassword('User@123');
@@ -45,7 +54,7 @@ const Login = () => {
 
   return (
     <div className="container py-5 d-flex align-items-center justify-content-center min-vh-100">
-      <div className="card border-0 shadow-lg rounded-4 overflow-hidden" style={{ maxWidth: '440px', width: '100%' }}>
+      <div className="card border-0 shadow-lg rounded-4 overflow-hidden" style={{ maxWidth: '450px', width: '100%' }}>
         <div
           className="p-4 text-white text-center"
           style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}
@@ -82,7 +91,16 @@ const Login = () => {
             </div>
 
             <div className="mb-3">
-              <label className="form-label fw-semibold text-secondary small">Password</label>
+              <div className="d-flex justify-content-between align-items-center">
+                <label className="form-label fw-semibold text-secondary small mb-1">Password</label>
+                <button
+                  type="button"
+                  className="btn btn-link btn-sm p-0 text-decoration-none text-primary small mb-1"
+                  onClick={() => setShowForgotModal(true)}
+                >
+                  Forgot Password?
+                </button>
+              </div>
               <input
                 type="password"
                 className="form-control rounded-3 py-2"
@@ -109,11 +127,14 @@ const Login = () => {
           {/* Quick Demo Credentials */}
           <div className="p-3 bg-light rounded-3 border mb-3">
             <div className="fw-semibold text-dark small mb-2 text-center">⚡ Auto-fill Demo Account:</div>
-            <div className="d-flex gap-2">
-              <button className="btn btn-outline-primary btn-sm w-50 rounded-2" onClick={fillDemoUser}>
+            <div className="d-flex gap-1">
+              <button className="btn btn-outline-primary btn-sm flex-grow-1 rounded-2" onClick={fillDemoUser}>
                 👤 Citizen
               </button>
-              <button className="btn btn-outline-danger btn-sm w-50 rounded-2" onClick={fillDemoAdmin}>
+              <button className="btn btn-outline-purple btn-sm flex-grow-1 rounded-2" onClick={fillDemoStaff}>
+                👷 Staff
+              </button>
+              <button className="btn btn-outline-danger btn-sm flex-grow-1 rounded-2" onClick={fillDemoAdmin}>
                 🛡️ Admin
               </button>
             </div>
@@ -127,6 +148,8 @@ const Login = () => {
           </div>
         </div>
       </div>
+
+      <ForgotPasswordModal show={showForgotModal} onHide={() => setShowForgotModal(false)} />
     </div>
   );
 };

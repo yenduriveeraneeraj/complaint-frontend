@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { complaintService } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
+import { complaintService, authService } from '../services/api';
+import { FaMoon, FaSun } from 'react-icons/fa';
 
 const Navbar = () => {
-  const { user, logout, isAuthenticated, isAdmin } = useAuth();
+  const { user, logout, isAuthenticated, isAdmin, isStaff } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -14,7 +17,7 @@ const Navbar = () => {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   useEffect(() => {
-    if (isAuthenticated && !isAdmin) {
+    if (isAuthenticated && !isAdmin && !isStaff) {
       fetchNotifications();
     }
   }, [isAuthenticated, location.pathname]);
@@ -48,16 +51,19 @@ const Navbar = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (ignored) {}
     logout();
     navigate('/login');
   };
 
   return (
-    <nav className="navbar navbar-expand-lg sticky-top shadow-sm" style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0' }}>
+    <nav className="navbar navbar-expand-lg sticky-top shadow-sm border-bottom navbar-custom">
       <div className="container">
         {/* Brand Logo */}
-        <Link className="navbar-brand d-flex align-items-center gap-2 fw-bold text-dark" to="/">
+        <Link className="navbar-brand d-flex align-items-center gap-2 fw-bold" to="/">
           <div
             style={{
               width: '38px',
@@ -74,7 +80,7 @@ const Navbar = () => {
           >
             ⚖️
           </div>
-          <span style={{ fontSize: '1.25rem', letterSpacing: '-0.02em', background: 'linear-gradient(135deg, #1e293b 0%, #475569 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <span style={{ fontSize: '1.25rem', letterSpacing: '-0.02em' }}>
             Resolver<span style={{ color: '#6366f1' }}>CMS</span>
           </span>
         </Link>
@@ -85,9 +91,6 @@ const Navbar = () => {
           type="button"
           data-bs-toggle="collapse"
           data-bs-target="#navbarContent"
-          aria-controls="navbarContent"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
         >
           <span className="navbar-toggler-icon"></span>
         </button>
@@ -97,26 +100,36 @@ const Navbar = () => {
           <ul className="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4 gap-1">
             <li className="nav-item">
               <Link
-                className={`nav-link px-3 fw-medium ${location.pathname === '/' ? 'text-primary border-bottom border-2 border-primary' : 'text-secondary'}`}
+                className={`nav-link px-3 fw-medium ${location.pathname === '/' ? 'text-primary border-bottom border-2 border-primary' : ''}`}
                 to="/"
               >
                 Home
               </Link>
             </li>
-            {isAuthenticated && !isAdmin && (
+            {isAuthenticated && !isAdmin && !isStaff && (
               <li className="nav-item">
                 <Link
-                  className={`nav-link px-3 fw-medium ${location.pathname === '/user/dashboard' ? 'text-primary border-bottom border-2 border-primary' : 'text-secondary'}`}
+                  className={`nav-link px-3 fw-medium ${location.pathname === '/user/dashboard' ? 'text-primary border-bottom border-2 border-primary' : ''}`}
                   to="/user/dashboard"
                 >
                   My Complaints
                 </Link>
               </li>
             )}
+            {isAuthenticated && isStaff && (
+              <li className="nav-item">
+                <Link
+                  className={`nav-link px-3 fw-medium ${location.pathname === '/staff/dashboard' ? 'text-primary border-bottom border-2 border-primary' : ''}`}
+                  to="/staff/dashboard"
+                >
+                  Technician Staff Portal
+                </Link>
+              </li>
+            )}
             {isAuthenticated && isAdmin && (
               <li className="nav-item">
                 <Link
-                  className={`nav-link px-3 fw-medium ${location.pathname === '/admin/dashboard' ? 'text-primary border-bottom border-2 border-primary' : 'text-secondary'}`}
+                  className={`nav-link px-3 fw-medium ${location.pathname === '/admin/dashboard' ? 'text-primary border-bottom border-2 border-primary' : ''}`}
                   to="/admin/dashboard"
                 >
                   Admin Control Center
@@ -125,12 +138,22 @@ const Navbar = () => {
             )}
           </ul>
 
-          {/* Right User Controls */}
+          {/* Right Controls */}
           <div className="d-flex align-items-center gap-3">
+            {/* Dark Mode Theme Toggle Button */}
+            <button
+              className="btn btn-outline-secondary btn-sm rounded-circle p-2 d-flex align-items-center justify-content-center"
+              onClick={toggleTheme}
+              title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+              style={{ width: '38px', height: '38px' }}
+            >
+              {theme === 'light' ? <FaMoon className="text-dark" /> : <FaSun className="text-warning" />}
+            </button>
+
             {isAuthenticated ? (
               <>
-                {/* Notifications Bell for Regular Users */}
-                {!isAdmin && (
+                {/* Notifications Bell for Citizens */}
+                {!isAdmin && !isStaff && (
                   <div className="position-relative">
                     <button
                       className="btn btn-light btn-sm rounded-circle p-2 position-relative"
@@ -146,7 +169,6 @@ const Navbar = () => {
                       )}
                     </button>
 
-                    {/* Notifications Dropdown Card */}
                     {showNotifications && (
                       <div
                         className="card shadow-lg position-absolute end-0 mt-2 rounded-4 border-0"
@@ -175,7 +197,6 @@ const Navbar = () => {
                               type="button"
                               className="btn-close btn-sm ms-1"
                               onClick={() => setShowNotifications(false)}
-                              aria-label="Close"
                             ></button>
                           </div>
                         </div>
@@ -189,9 +210,7 @@ const Navbar = () => {
                             notifications.map((n) => (
                               <div
                                 key={n.id}
-                                className={`p-3 border-bottom transition-all ${
-                                  !n.isRead ? 'bg-light' : 'bg-white'
-                                }`}
+                                className={`p-3 border-bottom transition-all ${!n.isRead ? 'bg-light' : 'bg-white'}`}
                                 onClick={() => markAsRead(n.id)}
                                 style={{
                                   cursor: 'pointer',
@@ -203,7 +222,7 @@ const Navbar = () => {
                                     {n.complaint?.complaintNumber ? `Complaint ${n.complaint.complaintNumber}` : 'Status Update'}
                                   </div>
                                   <span className="text-muted text-nowrap" style={{ fontSize: '0.7rem' }}>
-                                    {n.createdAt ? new Date(n.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                                    {n.createdAt ? new Date(n.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
                                   </span>
                                 </div>
                                 <p className="text-secondary small mb-0 lh-sm" style={{ wordBreak: 'break-word', fontSize: '0.82rem' }}>
@@ -218,7 +237,7 @@ const Navbar = () => {
                   </div>
                 )}
 
-                {/* User Profile Badge (Interactive) */}
+                {/* User Profile Badge */}
                 <div className="position-relative">
                   <div
                     className="d-flex align-items-center gap-2 bg-light px-3 py-1.5 rounded-pill border shadow-sm"
@@ -227,29 +246,31 @@ const Navbar = () => {
                       setShowNotifications(false);
                     }}
                     style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
-                    title="Click to view citizen profile details"
                   >
                     <div
                       className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm"
                       style={{
                         width: '32px',
                         height: '32px',
-                        background: isAdmin ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                        background: isAdmin
+                          ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                          : isStaff
+                          ? 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'
+                          : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                         fontSize: '0.85rem',
                       }}
                     >
                       {user?.fullName?.charAt(0).toUpperCase() || 'U'}
                     </div>
                     <div className="d-none d-sm-block text-start" style={{ lineHeight: '1.2' }}>
-                      <div className="fw-semibold text-dark small">{user?.fullName || 'Citizen User'}</div>
+                      <div className="fw-semibold text-dark small">{user?.fullName || 'User'}</div>
                       <div className="text-muted" style={{ fontSize: '0.72rem' }}>
-                        {isAdmin ? '🛡️ Administrator' : '👤 Citizen'}
+                        {isAdmin ? '🛡️ Administrator' : isStaff ? '👷 Technician' : '👤 Citizen'}
                       </div>
                     </div>
                     <span className="text-muted ms-1" style={{ fontSize: '0.7rem' }}>▼</span>
                   </div>
 
-                  {/* Citizen Profile Details Popover */}
                   {showProfileCard && (
                     <div
                       className="card shadow-lg position-absolute end-0 mt-2 rounded-4 border-0"
@@ -260,6 +281,8 @@ const Navbar = () => {
                         style={{
                           background: isAdmin
                             ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)'
+                            : isStaff
+                            ? 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)'
                             : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                         }}
                       >
@@ -269,9 +292,9 @@ const Navbar = () => {
                         >
                           {user?.fullName?.charAt(0).toUpperCase() || 'U'}
                         </div>
-                        <h6 className="fw-bold mb-0 text-white">{user?.fullName || 'Citizen User'}</h6>
+                        <h6 className="fw-bold mb-0 text-white">{user?.fullName || 'User'}</h6>
                         <span className="badge bg-white text-dark rounded-pill px-3 mt-1" style={{ fontSize: '0.7rem' }}>
-                          {isAdmin ? '🛡️ System Administrator' : '👤 Registered Citizen'}
+                          {isAdmin ? '🛡️ Administrator' : isStaff ? '👷 Technician Staff' : '👤 Registered Citizen'}
                         </span>
                       </div>
 
@@ -286,27 +309,7 @@ const Navbar = () => {
                           </div>
                         </div>
 
-                        <div className="d-flex align-items-center gap-2 mb-2 p-2 bg-light rounded-3">
-                          <span className="fs-5">📞</span>
-                          <div className="text-start" style={{ lineHeight: '1.2' }}>
-                            <div className="text-muted extra-small" style={{ fontSize: '0.7rem' }}>Phone Number</div>
-                            <div className="fw-semibold text-dark small">
-                              {user?.phone || '9876543210'}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="d-flex align-items-center gap-2 mb-3 p-2 bg-light rounded-3">
-                          <span className="fs-5">🛡️</span>
-                          <div className="text-start" style={{ lineHeight: '1.2' }}>
-                            <div className="text-muted extra-small" style={{ fontSize: '0.7rem' }}>Account Status</div>
-                            <div className="fw-semibold text-success small">
-                              ● Active & Authenticated
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="d-flex gap-2">
+                        <div className="d-flex gap-2 mt-3">
                           <button
                             className="btn btn-outline-secondary btn-sm w-100 rounded-pill"
                             onClick={() => setShowProfileCard(false)}

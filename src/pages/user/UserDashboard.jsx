@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { complaintService, feedbackService, publicService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import TimelineView from '../../components/common/TimelineView';
+import CommentThread from '../../components/common/CommentThread';
+import Pagination from '../../components/common/Pagination';
+import { FaFileDownload, FaStar, FaPlus, FaSearch } from 'react-icons/fa';
 
 const UserDashboard = () => {
   const { user } = useAuth();
@@ -9,6 +13,12 @@ const UserDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Pagination State
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -37,13 +47,22 @@ const UserDashboard = () => {
   useEffect(() => {
     fetchComplaints();
     fetchDepartments();
-  }, [statusFilter]);
+  }, [statusFilter, page, pageSize]);
 
   const fetchComplaints = async () => {
     setLoading(true);
     try {
-      const res = await complaintService.getUserComplaints({ status: statusFilter });
-      setComplaints(res.data.content || res.data || []);
+      const res = await complaintService.getUserComplaints({ status: statusFilter, page, size: pageSize });
+      if (res.data && res.data.content) {
+        setComplaints(res.data.content);
+        setTotalPages(res.data.totalPages || 1);
+        setTotalElements(res.data.totalElements || res.data.content.length);
+      } else {
+        const dataArr = res.data || [];
+        setComplaints(dataArr);
+        setTotalPages(1);
+        setTotalElements(dataArr.length);
+      }
     } catch (err) {
       console.error('Failed to fetch complaints', err);
     } finally {
@@ -107,6 +126,22 @@ const UserDashboard = () => {
     }
   };
 
+  const handleDownloadReceipt = async (complaintId, complaintNumber) => {
+    try {
+      const res = await complaintService.getReceiptBlob(complaintId);
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Complaint_Receipt_${complaintNumber || complaintId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error('Failed to download receipt PDF', err);
+      alert('Could not download acknowledgement receipt.');
+    }
+  };
+
   const handleOpenFeedback = (complaint) => {
     setSelectedComplaint(complaint);
     setRating(5);
@@ -134,15 +169,15 @@ const UserDashboard = () => {
   };
 
   // KPI Counter Calculation
-  const totalCount = complaints.length;
+  const totalCount = totalElements || complaints.length;
   const pendingCount = complaints.filter((c) => c.status === 'PENDING').length;
   const inProgressCount = complaints.filter((c) => c.status === 'IN_PROGRESS').length;
   const resolvedCount = complaints.filter((c) => c.status === 'RESOLVED').length;
 
   const filteredComplaints = complaints.filter(
     (c) =>
-      c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.complaintNumber.toLowerCase().includes(searchTerm.toLowerCase())
+      c.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.complaintNumber?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusBadge = (status) => {
@@ -184,10 +219,10 @@ const UserDashboard = () => {
           <p className="text-muted small m-0">Track and manage your submitted grievances</p>
         </div>
         <button
-          className="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold"
+          className="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold d-flex align-items-center gap-2"
           onClick={() => setShowCreateModal(true)}
         >
-          ➕ Lodge New Complaint
+          <FaPlus /> Lodge New Complaint
         </button>
       </div>
 
@@ -226,38 +261,43 @@ const UserDashboard = () => {
             <div className="btn-group w-100" role="group">
               <button
                 className={`btn btn-sm ${statusFilter === '' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                onClick={() => setStatusFilter('')}
+                onClick={() => { setStatusFilter(''); setPage(0); }}
               >
                 All
               </button>
               <button
                 className={`btn btn-sm ${statusFilter === 'PENDING' ? 'btn-warning text-dark' : 'btn-outline-secondary'}`}
-                onClick={() => setStatusFilter('PENDING')}
+                onClick={() => { setStatusFilter('PENDING'); setPage(0); }}
               >
                 Pending
               </button>
               <button
                 className={`btn btn-sm ${statusFilter === 'IN_PROGRESS' ? 'btn-info text-dark' : 'btn-outline-secondary'}`}
-                onClick={() => setStatusFilter('IN_PROGRESS')}
+                onClick={() => { setStatusFilter('IN_PROGRESS'); setPage(0); }}
               >
                 In Progress
               </button>
               <button
                 className={`btn btn-sm ${statusFilter === 'RESOLVED' ? 'btn-success' : 'btn-outline-secondary'}`}
-                onClick={() => setStatusFilter('RESOLVED')}
+                onClick={() => { setStatusFilter('RESOLVED'); setPage(0); }}
               >
                 Resolved
               </button>
             </div>
           </div>
           <div className="col-md-6">
-            <input
-              type="text"
-              className="form-control form-control-sm rounded-pill px-3"
-              placeholder="🔍 Search by Complaint ID or Title..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <div className="input-group input-group-sm">
+              <span className="input-group-text bg-white border-end-0">
+                <FaSearch className="text-muted" />
+              </span>
+              <input
+                type="text"
+                className="form-control form-control-sm border-start-0 px-2"
+                placeholder="Search by Complaint ID or Title..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -280,57 +320,81 @@ const UserDashboard = () => {
           </div>
         </div>
       ) : (
-        <div className="row g-3">
-          {filteredComplaints.map((item) => (
-            <div key={item.id} className="col-12">
-              <div className="card border-0 shadow-sm rounded-4 p-3 bg-white hover-shadow transition">
-                <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-                  <div className="d-flex align-items-center gap-2">
-                    <span className="fw-bold text-primary font-monospace">{item.complaintNumber}</span>
-                    {getStatusBadge(item.status)}
-                    {getPriorityBadge(item.priority)}
-                  </div>
-                  <small className="text-muted">
-                    📅 {new Date(item.createdAt).toLocaleDateString()}
-                  </small>
-                </div>
-
-                <h5 className="fw-bold text-dark mb-1">{item.title}</h5>
-                <p className="text-secondary small mb-3 text-truncate">{item.description}</p>
-
-                <div className="d-flex flex-wrap justify-content-between align-items-center border-top pt-2 mt-2 gap-2">
-                  <div className="d-flex gap-3 small text-muted">
-                    <span>🏢 <strong>Dept:</strong> {item.departmentName || 'Unassigned'}</span>
-                    <span>📍 <strong>Location:</strong> {item.location || 'N/A'}</span>
-                    <span>👤 <strong>Assigned Staff:</strong> {item.assignedStaffName || 'Pending'}</span>
+        <>
+          <div className="row g-3">
+            {filteredComplaints.map((item) => (
+              <div key={item.id} className="col-12">
+                <div className="card border-0 shadow-sm rounded-4 p-3 bg-white hover-shadow transition">
+                  <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                    <div className="d-flex align-items-center gap-2">
+                      <span className="fw-bold text-primary font-monospace">{item.complaintNumber}</span>
+                      {getStatusBadge(item.status)}
+                      {getPriorityBadge(item.priority)}
+                      {item.isOverdue && (
+                        <span className="badge bg-danger badge-overdue">⚠️ OVERDUE</span>
+                      )}
+                    </div>
+                    <small className="text-muted">
+                      📅 {new Date(item.createdAt).toLocaleDateString()}
+                    </small>
                   </div>
 
-                  <div className="d-flex gap-2">
-                    <button
-                      className="btn btn-outline-primary btn-sm rounded-pill px-3"
-                      onClick={() => handleViewDetails(item)}
-                    >
-                      View Details & History 🔍
-                    </button>
-                    {item.status === 'RESOLVED' && !item.feedback && (
+                  <h5 className="fw-bold text-dark mb-1">{item.title}</h5>
+                  <p className="text-secondary small mb-3 text-truncate">{item.description}</p>
+
+                  <div className="d-flex flex-wrap justify-content-between align-items-center border-top pt-2 mt-2 gap-2">
+                    <div className="d-flex gap-3 small text-muted">
+                      <span>🏢 <strong>Dept:</strong> {item.departmentName || 'Unassigned'}</span>
+                      <span>📍 <strong>Location:</strong> {item.location || 'N/A'}</span>
+                      <span>👤 <strong>Assigned Staff:</strong> {item.assignedStaffName || 'Pending'}</span>
+                    </div>
+
+                    <div className="d-flex gap-2">
                       <button
-                        className="btn btn-warning btn-sm rounded-pill px-3 fw-semibold text-dark"
-                        onClick={() => handleOpenFeedback(item)}
+                        className="btn btn-outline-secondary btn-sm rounded-pill px-3 d-flex align-items-center gap-1"
+                        onClick={() => handleDownloadReceipt(item.id, item.complaintNumber)}
+                        title="Download Acknowledgment Slip"
                       >
-                        ⭐ Rate Resolution
+                        <FaFileDownload /> Slip
                       </button>
-                    )}
-                    {item.feedback && (
-                      <span className="badge bg-light text-dark border align-self-center px-3 py-1.5">
-                        ⭐ Rated: {item.feedback.rating}/5
-                      </span>
-                    )}
+                      <button
+                        className="btn btn-outline-primary btn-sm rounded-pill px-3"
+                        onClick={() => handleViewDetails(item)}
+                      >
+                        View Details & History 🔍
+                      </button>
+                      {item.status === 'RESOLVED' && !item.feedback && (
+                        <button
+                          className="btn btn-warning btn-sm rounded-pill px-3 fw-semibold text-dark d-flex align-items-center gap-1"
+                          onClick={() => handleOpenFeedback(item)}
+                        >
+                          <FaStar /> Rate
+                        </button>
+                      )}
+                      {item.feedback && (
+                        <span className="badge bg-light text-dark border align-self-center px-3 py-1.5">
+                          ⭐ Rated: {item.feedback.rating}/5
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalElements={totalElements}
+            onPageChange={(newPage) => setPage(newPage)}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setPage(0);
+            }}
+          />
+        </>
       )}
 
       {/* CREATE COMPLAINT MODAL */}
@@ -396,7 +460,7 @@ const UserDashboard = () => {
                         value={departmentId}
                         onChange={(e) => setDepartmentId(e.target.value)}
                       >
-                        <option value="">Auto Select</option>
+                        <option value="">Auto Select (By Category)</option>
                         {departments.map((d) => (
                           <option key={d.id} value={d.id}>
                             {d.name}
@@ -453,7 +517,7 @@ const UserDashboard = () => {
         </div>
       )}
 
-      {/* DETAILS & STATUS HISTORY TIMELINE MODAL */}
+      {/* DETAILS & STATUS HISTORY TIMELINE & COMMENTS MODAL */}
       {showDetailModal && selectedComplaint && (
         <div className="modal d-block bg-dark bg-opacity-50" tabIndex="-1">
           <div className="modal-dialog modal-dialog-centered modal-lg">
@@ -464,10 +528,10 @@ const UserDashboard = () => {
                 </h5>
                 <button className="btn-close btn-close-white" onClick={() => setShowDetailModal(false)}></button>
               </div>
-              <div className="modal-body p-4">
+              <div className="modal-body p-4" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
                 <div className="row g-3 mb-4">
                   <div className="col-md-8">
-                    <h5 className="fw-bold text-dark">{selectedComplaint.title}</h5>
+                    <h5 className="fw-bold text-dark mb-2">{selectedComplaint.title}</h5>
                     <p className="text-secondary">{selectedComplaint.description}</p>
                   </div>
                   <div className="col-md-4 bg-light p-3 rounded-3 border">
@@ -476,34 +540,32 @@ const UserDashboard = () => {
                     <div className="small mb-1"><strong>Category:</strong> {selectedComplaint.category}</div>
                     <div className="small mb-1"><strong>Department:</strong> {selectedComplaint.departmentName || 'N/A'}</div>
                     <div className="small mb-1"><strong>Assigned Officer:</strong> {selectedComplaint.assignedStaffName || 'Unassigned'}</div>
-                    <div className="small"><strong>Location:</strong> {selectedComplaint.location || 'N/A'}</div>
+                    <div className="small mb-1"><strong>Location:</strong> {selectedComplaint.location || 'N/A'}</div>
+                    {selectedComplaint.slaDeadline && (
+                      <div className="small"><strong>SLA Target:</strong> {new Date(selectedComplaint.slaDeadline).toLocaleString()}</div>
+                    )}
                   </div>
                 </div>
 
                 {selectedComplaint.remarks && (
                   <div className="alert alert-info py-2 small mb-4">
-                    <strong>Admin Remarks:</strong> {selectedComplaint.remarks}
+                    <strong>Admin/Technician Remarks:</strong> {selectedComplaint.remarks}
                   </div>
                 )}
 
-                <h6 className="fw-bold border-bottom pb-2 mb-3">⏱️ Lifecycle Status Timeline</h6>
-                {statusHistory.length === 0 ? (
-                  <p className="text-muted small">No history recorded yet.</p>
-                ) : (
-                  <div className="timeline ps-3">
-                    {statusHistory.map((h, idx) => (
-                      <div key={idx} className="position-relative mb-3 ps-3 border-start border-2 border-primary">
-                        <div className="fw-bold text-dark small">{h.oldStatus} ➔ {h.newStatus}</div>
-                        <div className="text-muted small">{h.remarks || 'Status updated by system/admin'}</div>
-                        <div className="text-secondary" style={{ fontSize: '0.75rem' }}>
-                          By: {h.changedByName} | {new Date(h.changedAt).toLocaleString()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <h6 className="fw-bold border-bottom pb-2 mb-3">⏱️ Lifecycle Timeline</h6>
+                <TimelineView history={statusHistory} />
+
+                {/* Two-Way Comment Thread */}
+                <CommentThread complaintId={selectedComplaint.id} />
               </div>
-              <div className="modal-footer border-top p-3">
+              <div className="modal-footer border-top p-3 d-flex justify-content-between">
+                <button
+                  className="btn btn-outline-primary rounded-pill px-3 d-flex align-items-center gap-1"
+                  onClick={() => handleDownloadReceipt(selectedComplaint.id, selectedComplaint.complaintNumber)}
+                >
+                  <FaFileDownload /> Download PDF Slip
+                </button>
                 <button className="btn btn-secondary rounded-pill px-4" onClick={() => setShowDetailModal(false)}>
                   Close
                 </button>

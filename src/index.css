@@ -166,6 +166,108 @@ a:hover {
 .badge-high       { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; }
 .badge-urgent     { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
 
+/* Flashing Overdue Badge */
+@keyframes flash-red {
+  0%, 100% { background-color: #dc2626; color: #ffffff; box-shadow: 0 0 10px rgba(220, 38, 38, 0.8); }
+  50% { background-color: #7f1d1d; color: #fca5a5; box-shadow: 0 0 2px rgba(220, 38, 38, 0.3); }
+}
+
+.badge-overdue {
+  animation: flash-red 1.2s infinite ease-in-out;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* ── SLEEK HIGH-CONTRAST DARK MODE THEME ────────────────────────── */
+[data-bs-theme="dark"],
+[data-theme="dark"],
+[data-bs-theme="dark"] body,
+[data-theme="dark"] body,
+[data-bs-theme="dark"] main,
+[data-theme="dark"] main,
+[data-bs-theme="dark"] .bg-light,
+[data-theme="dark"] .bg-light {
+  background-color: #0b0f19 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Card, Header, Navbar, Modal & Panel Backgrounds in Dark Mode */
+[data-bs-theme="dark"] .card,
+[data-theme="dark"] .card,
+[data-bs-theme="dark"] .stat-card,
+[data-theme="dark"] .stat-card,
+[data-bs-theme="dark"] .page-header,
+[data-theme="dark"] .page-header,
+[data-bs-theme="dark"] .modal-content,
+[data-theme="dark"] .modal-content,
+[data-bs-theme="dark"] .navbar-custom,
+[data-theme="dark"] .navbar-custom,
+[data-bs-theme="dark"] .bg-white,
+[data-theme="dark"] .bg-white {
+  background-color: #151c2c !important;
+  border-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+/* Text High Contrast Overrides in Dark Mode */
+[data-bs-theme="dark"] h1, [data-bs-theme="dark"] h2, [data-bs-theme="dark"] h3,
+[data-bs-theme="dark"] h4, [data-bs-theme="dark"] h5, [data-bs-theme="dark"] h6,
+[data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3,
+[data-theme="dark"] h4, [data-theme="dark"] h5, [data-theme="dark"] h6,
+[data-bs-theme="dark"] .text-dark,
+[data-theme="dark"] .text-dark,
+[data-bs-theme="dark"] .fw-bold,
+[data-theme="dark"] .fw-bold {
+  color: #f8fafc !important;
+}
+
+[data-bs-theme="dark"] .text-secondary,
+[data-theme="dark"] .text-secondary,
+[data-bs-theme="dark"] .text-muted,
+[data-theme="dark"] .text-muted {
+  color: #94a3b8 !important;
+}
+
+/* Form Controls, Inputs & Dropdowns in Dark Mode */
+[data-bs-theme="dark"] .form-control,
+[data-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select,
+[data-theme="dark"] .form-select,
+[data-bs-theme="dark"] .input-group-text,
+[data-theme="dark"] .input-group-text,
+[data-bs-theme="dark"] .btn-group .btn,
+[data-theme="dark"] .btn-group .btn {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+[data-bs-theme="dark"] .form-control::placeholder,
+[data-theme="dark"] .form-control::placeholder {
+  color: #64748b !important;
+}
+
+/* User Pill & Navbar Links in Dark Mode */
+[data-bs-theme="dark"] .navbar-nav .nav-link,
+[data-theme="dark"] .navbar-nav .nav-link {
+  color: #cbd5e1 !important;
+}
+
+[data-bs-theme="dark"] .navbar-nav .nav-link:hover,
+[data-theme="dark"] .navbar-nav .nav-link:hover {
+  color: #60a5fa !important;
+}
+
+/* Table Styling in Dark Mode */
+[data-bs-theme="dark"] .table,
+[data-theme="dark"] .table {
+  color: #f8fafc !important;
+  --bs-table-bg: #151c2c;
+  --bs-table-color: #f8fafc;
+  --bs-table-hover-bg: #1e293b;
+  border-color: #1e293b !important;
+}
+
 /* ── ANIMATIONS ──────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }

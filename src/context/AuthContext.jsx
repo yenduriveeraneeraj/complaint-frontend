@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('cms_user', JSON.stringify(user));
     } else {
       localStorage.removeItem('cms_token');
+      localStorage.removeItem('cms_refresh_token');
       localStorage.removeItem('cms_user');
     }
   }, [token, user]);
@@ -37,6 +38,9 @@ export const AuthProvider = ({ children }) => {
       };
 
       setToken(data.token);
+      if (data.refreshToken) {
+        localStorage.setItem('cms_refresh_token', data.refreshToken);
+      }
       setUser(userData);
       return { success: true, data };
     } catch (error) {
@@ -53,7 +57,17 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.register(userData);
       return { success: true, data: response.data };
     } catch (error) {
-      const message = error.response?.data?.message || 'Registration failed.';
+      const data = error.response?.data;
+      let message = 'Registration failed. Please check your details.';
+      if (data?.fieldErrors && typeof data.fieldErrors === 'object') {
+        message = Object.entries(data.fieldErrors)
+          .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
+          .join(' | ');
+      } else if (data?.message) {
+        message = data.message;
+      } else if (typeof data === 'string' && data.trim().length > 0) {
+        message = data;
+      }
       return { success: false, message };
     } finally {
       setLoading(false);
@@ -64,10 +78,12 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
     localStorage.removeItem('cms_token');
+    localStorage.removeItem('cms_refresh_token');
     localStorage.removeItem('cms_user');
   };
 
   const isAdmin = user?.role === 'ROLE_ADMIN';
+  const isStaff = user?.role === 'ROLE_STAFF';
 
   return (
     <AuthContext.Provider
@@ -80,6 +96,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         isAuthenticated: !!token,
         isAdmin,
+        isStaff,
       }}
     >
       {children}

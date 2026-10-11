@@ -1,15 +1,23 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import TrackWidget from '../components/public/TrackWidget';
 
 const LandingPage = () => {
-  const { login, isAuthenticated, isAdmin } = useAuth();
+  const { login, isAuthenticated, isAdmin, isStaff } = useAuth();
   const navigate = useNavigate();
 
   const handleDemoAdmin = async () => {
     const res = await login('admin@cms.com', 'Admin@123');
     if (res.success) {
       navigate('/admin/dashboard');
+    }
+  };
+
+  const handleDemoStaff = async () => {
+    const res = await login('staff@cms.com', 'Staff@123');
+    if (res.success) {
+      navigate('/staff/dashboard');
     }
   };
 
@@ -22,30 +30,31 @@ const LandingPage = () => {
 
   return (
     <div className="bg-light min-vh-100 pb-5">
+
       {/* Hero Section */}
       <section
         className="py-5 text-white text-center position-relative overflow-hidden"
         style={{
           background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%)',
-          paddingTop: '5rem',
+          paddingTop: '4rem',
           paddingBottom: '5rem',
         }}
       >
-        <div className="container position-relative z-1 py-4">
+        <div className="container position-relative z-1 py-3">
           <span className="badge rounded-pill bg-white text-dark px-3 py-2 mb-3 shadow-sm fw-medium">
-            ⚡ Powered by Spring Boot 3 & React.js
+            ⚡ Powered by Spring Boot 3 & React 18
           </span>
-          <h1 className="display-4 fw-extrabold mb-3 text-white" style={{ letterSpacing: '-0.03em' }}>
+          <h1 className="display-4 fw-bold mb-3 text-white" style={{ letterSpacing: '-0.03em' }}>
             Empowering Citizens, Elevating Accountability
           </h1>
           <p className="lead mx-auto mb-4 text-light opacity-90" style={{ maxWidth: '720px' }}>
-            A unified, transparent, and intelligent platform for lodging grievances, tracking resolution lifecycles in real-time, and evaluating municipal & institutional service delivery.
+            A unified, transparent, and intelligent platform for lodging grievances, tracking resolution lifecycles in real-time, and evaluating service delivery.
           </p>
 
-          <div className="d-flex flex-wrap justify-content-center gap-3 mb-5">
+          <div className="d-flex flex-wrap justify-content-center gap-3 mb-4">
             {isAuthenticated ? (
               <Link
-                to={isAdmin ? '/admin/dashboard' : '/user/dashboard'}
+                to={isAdmin ? '/admin/dashboard' : isStaff ? '/staff/dashboard' : '/user/dashboard'}
                 className="btn btn-warning btn-lg px-4 py-2.5 rounded-pill shadow fw-bold text-dark"
               >
                 Go to Dashboard 🚀
@@ -64,20 +73,28 @@ const LandingPage = () => {
 
           {/* Quick Demo Access Bar */}
           <div
-            className="card mx-auto p-3 border-0 rounded-4 shadow-lg text-dark"
-            style={{ maxWidth: '640px', background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)' }}
+            className="card mx-auto p-3 border-0 rounded-4 shadow-lg text-dark mb-4"
+            style={{ maxWidth: '680px', background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)' }}
           >
             <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
-              <span className="fw-semibold text-secondary small">⚡ Instant Demo Access:</span>
+              <span className="fw-semibold text-secondary small">⚡ Quick Demo Access:</span>
               <div className="d-flex gap-2">
                 <button className="btn btn-sm btn-outline-primary rounded-pill px-3" onClick={handleDemoUser}>
-                  👤 Demo Citizen Login
+                  👤 Citizen
+                </button>
+                <button className="btn btn-sm btn-outline-purple rounded-pill px-3" onClick={handleDemoStaff}>
+                  👷 Staff
                 </button>
                 <button className="btn btn-sm btn-outline-danger rounded-pill px-3" onClick={handleDemoAdmin}>
-                  🛡️ Demo Admin Login
+                  🛡️ Admin
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Public Track Complaint Widget */}
+          <div className="mx-auto" style={{ maxWidth: '720px' }}>
+            <TrackWidget />
           </div>
         </div>
       </section>
@@ -116,7 +133,7 @@ const LandingPage = () => {
       <section className="container py-5 mt-4">
         <div className="text-center mb-5">
           <h2 className="fw-bold text-dark">Engineered for Rapid Resolution</h2>
-          <p className="text-muted">Designed to streamline communication between citizens and department officers.</p>
+          <p className="text-muted">Designed to streamline communication between citizens, technicians, and administrators.</p>
         </div>
 
         <div className="row g-4">
@@ -156,9 +173,9 @@ const LandingPage = () => {
               >
                 📊
               </div>
-              <h5 className="fw-bold">Live Status Timelines</h5>
+              <h5 className="fw-bold">Live Status Timelines & PDF Receipts</h5>
               <p className="text-muted small">
-                Track status updates from PENDING → IN PROGRESS → RESOLVED with audit timestamps and officer remarks.
+                Track status updates from PENDING → IN PROGRESS → RESOLVED with audit timestamps, officer remarks, and downloadable PDF receipts.
               </p>
             </div>
           </div>

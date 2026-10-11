@@ -1,12 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import UserDashboard from './pages/user/UserDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import StaffDashboard from './pages/staff/StaffDashboard';
 
 // Protected Route Wrapper for Citizen / User
 const ProtectedUserRoute = ({ children }) => {
@@ -21,6 +23,14 @@ const ProtectedAdminRoute = ({ children }) => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
   if (loading) return <div className="text-center py-5">Loading...</div>;
   if (!isAuthenticated || !isAdmin) return <Navigate to="/login" replace />;
+  return children;
+};
+
+// Protected Route Wrapper for Staff
+const ProtectedStaffRoute = ({ children }) => {
+  const { isAuthenticated, isStaff, isAdmin, loading } = useAuth();
+  if (loading) return <div className="text-center py-5">Loading...</div>;
+  if (!isAuthenticated || (!isStaff && !isAdmin)) return <Navigate to="/login" replace />;
   return children;
 };
 
@@ -42,6 +52,16 @@ function AppContent() {
               <ProtectedUserRoute>
                 <UserDashboard />
               </ProtectedUserRoute>
+            }
+          />
+
+          {/* Staff Protected Dashboard */}
+          <Route
+            path="/staff/dashboard"
+            element={
+              <ProtectedStaffRoute>
+                <StaffDashboard />
+              </ProtectedStaffRoute>
             }
           />
 
@@ -72,11 +92,13 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
